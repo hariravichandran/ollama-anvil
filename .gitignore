@@ -3,6 +3,11 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# ollama-anvil runtime state
+.anvil/
+.anvil_state/
+agents/
+
 # C extensions
 *.so
 
