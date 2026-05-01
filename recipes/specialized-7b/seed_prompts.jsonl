@@ -1,0 +1,1 @@
+{"instruction": "Replace this file with seed prompts for your domain. Each line is a JSON object with at minimum an 'instruction' field. They drive synthetic generation when prepare_data.py is run with --synth-prompts."}
