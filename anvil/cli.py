@@ -27,7 +27,7 @@ def main(ctx):
 
     \b
     Key groups:
-        models / mcp / agent / rag / idea
+        models / mcp / agent / rag / idea / train
         hardware / doctor / version / env
         chat / ui / tui / self-improve
 
@@ -773,6 +773,89 @@ def self_improve(iterations: int, enable: bool, maintainer: bool):
     for i in range(iterations):
         console.print(f"\n[bold]Iteration {i + 1}/{iterations}[/bold]")
         agent.run_iteration()
+
+
+# ─── Train (LoRA / QLoRA fine-tuning, ROCm + Strix Halo) ────────────────────
+
+
+def _run_bundled_script(script_name: str, args: list[str], *, sudo: bool = False) -> int:
+    """Subprocess to a .sh script bundled under anvil/training/scripts/."""
+    import subprocess
+
+    from anvil.training import script_path
+
+    try:
+        path = script_path(script_name)
+    except FileNotFoundError as e:
+        console.print(f"[red]{e}[/red]")
+        return 2
+    cmd = (["sudo", "bash", str(path)] if sudo else ["bash", str(path)]) + list(args)
+    return subprocess.call(cmd)
+
+
+@main.group()
+def train():
+    """LoRA / QLoRA fine-tuning (ROCm + unified-memory APUs, e.g. Strix Halo)."""
+    pass
+
+
+@train.command("install")
+@click.option("--strix-halo", is_flag=True, help="Use AMD's manylinux full-bundle wheels (gfx1151).")
+@click.option("--no-fa", is_flag=True, help="Skip flash-attn (use SDPA instead).")
+@click.option("--hqq-only", is_flag=True, help="Skip bitsandbytes; use HQQ as the only quantizer.")
+def train_install(strix_halo: bool, no_fa: bool, hqq_only: bool):
+    """Install the ROCm training stack into the active venv."""
+    if not os.environ.get("VIRTUAL_ENV"):
+        console.print("[yellow]Tip:[/yellow] activate your venv first ([cyan]source .venv/bin/activate[/cyan])")
+    args = []
+    if strix_halo:
+        args.append("--strix-halo")
+    if no_fa:
+        args.append("--no-fa")
+    if hqq_only:
+        args.append("--hqq-only")
+    sys.exit(_run_bundled_script("install-training-stack.sh", args))
+
+
+@train.command("setup")
+def train_setup():
+    """System-level setup (sudo): grow swap, set ROCm env vars, amdgpu options."""
+    sys.exit(_run_bundled_script("setup-qlora-system.sh", [], sudo=True))
+
+
+@train.command("preflight")
+@click.option("--apply", is_flag=True, help="Apply safe fixes (governor, sleep targets).")
+def train_preflight(apply: bool):
+    """Pre-flight checklist before a long training run. Exit 0 = READY."""
+    sys.exit(_run_bundled_script("preflight-training.sh", ["--apply"] if apply else []))
+
+
+@train.command("diagnose")
+@click.option("--quiet", is_flag=True, help="Only print the verdict + recommended actions.")
+def train_diagnose(quiet: bool):
+    """Diagnose why QLoRA / LoRA fine-tuning fails on this machine."""
+    sys.exit(_run_bundled_script("diagnose-qlora.sh", ["--quiet"] if quiet else []))
+
+
+@train.command("run", context_settings={"ignore_unknown_options": True})
+@click.argument("trainer_args", nargs=-1, type=click.UNPROCESSED)
+def train_run(trainer_args: tuple):
+    """Run the LoRA / QLoRA trainer. Pass-through args go to anvil.training.trainer.
+
+    \b
+    Example:
+        anvil train run --model Qwen/Qwen2.5-7B-Instruct \\
+                        --dataset ./data/corpus.jsonl \\
+                        --output ./out/my-run \\
+                        --quantizer none --max-steps 60
+    """
+    try:
+        from anvil.training.trainer import main as trainer_main
+    except ImportError as e:
+        console.print(f"[red]Training extras not installed:[/red] {e}")
+        console.print("Run: [cyan]pip install -e \".[training]\"[/cyan] then [cyan]anvil train install[/cyan]")
+        sys.exit(1)
+    sys.exit(trainer_main(list(trainer_args)))
 
 
 # ─── Tools ───────────────────────────────────────────────────────────────────
