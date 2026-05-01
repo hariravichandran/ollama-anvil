@@ -44,6 +44,24 @@ convert = [
     "sentencepiece>=0.1.99",
     "protobuf>=3.20",
 ]
+# Architecture-neutral LoRA / QLoRA training stack. The GPU-arch-specific
+# pieces (PyTorch ROCm wheels, bitsandbytes ROCm fork, flash-attn ROCm fork)
+# are installed by 'anvil train install' because PyPI cannot deliver them
+# via a static dep spec. See docs/qlora-training.md.
+training = [
+    "transformers>=4.46,<5",
+    "peft>=0.13,<1",
+    "trl>=0.12,<1",
+    "accelerate>=1.1",
+    "datasets>=3.0,<4",
+    "safetensors>=0.4.5",
+    "huggingface_hub>=0.26,<1",
+    "sentencepiece>=0.2",
+    "protobuf>=3.20",
+    "tensorboard>=2.18",
+    "evaluate>=0.4",
+    "hqq>=0.2.2",
+]
 all = ["ollama-anvil[tui,convert]"]
 dev = ["pytest>=7.0.0", "ruff>=0.2.0", "ollama-anvil[all]"]
 
@@ -58,6 +76,9 @@ Issues = "https://github.com/hariravichandran/ollama-anvil/issues"
 
 [tool.setuptools.packages.find]
 include = ["anvil*"]
+
+[tool.setuptools.package-data]
+"anvil.training" = ["scripts/*.sh"]
 
 [tool.ruff]
 line-length = 120
