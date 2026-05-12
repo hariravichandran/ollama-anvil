@@ -14,7 +14,21 @@ from rich.table import Table
 console = Console()
 
 
+def _pkg_version() -> str:
+    """Resolve the installed anvil version (importlib.metadata first, fall back
+    to the dataclass-style __version__ if the package isn't installed)."""
+    try:
+        from importlib.metadata import PackageNotFoundError, version
+        try:
+            return version("ollama-anvil")
+        except PackageNotFoundError:
+            return "0.0.0+unknown"
+    except Exception:
+        return "0.0.0+unknown"
+
+
 @click.group(invoke_without_command=True)
+@click.version_option(_pkg_version(), prog_name="anvil")
 @click.pass_context
 def main(ctx):
     """ollama-anvil: Batteries-included CLI for Ollama.
@@ -512,17 +526,22 @@ def mcp():
 def mcp_list():
     """List active MCP servers."""
     from anvil.mcp.manager import MCPManager
+    from anvil.mcp.registry import MCP_REGISTRY
 
     mgr = MCPManager()
-    active = mgr.list_active()
-    if not active:
+    enabled_names = mgr.get_enabled()
+    if not enabled_names:
         console.print("[dim]No MCP servers active.[/dim]")
         return
-    table = Table(title=f"Active MCPs ({len(active)})")
+    table = Table(title=f"Active MCPs ({len(enabled_names)})")
     table.add_column("Name", style="cyan")
     table.add_column("Description")
-    for m in active:
-        table.add_row(m.name, m.description)
+    for name in enabled_names:
+        entry = MCP_REGISTRY.get(name)
+        if entry is not None:
+            table.add_row(entry.name, entry.description)
+        else:
+            table.add_row(name, "[dim](not in registry)[/dim]")
     console.print(table)
 
 
