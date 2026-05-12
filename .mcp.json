@@ -1,9 +1,8 @@
 {
   "mcpServers": {
     "ollama": {
-      "command": "/home/ravichandran/Documents/GitHub/ollama-forge/.venv/bin/python3",
-      "args": ["-m", "forge.mcp.ollama_server"],
-      "cwd": "/home/ravichandran/Documents/GitHub/ollama-forge",
+      "command": "python3",
+      "args": ["-m", "anvil.mcp.ollama_server"],
       "env": {
         "OLLAMA_HOST": "http://localhost:11434"
       }

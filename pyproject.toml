@@ -34,6 +34,10 @@ dependencies = [
 
 [project.optional-dependencies]
 tui = ["textual>=0.40.0"]
+# MCP server that exposes local Ollama as Claude Code tools.
+# Install with: pip install -e .[mcp]
+# Then point .mcp.json at `python3 -m anvil.mcp.ollama_server`.
+mcp = ["mcp>=1.0.0"]
 # Deps for 'anvil models convert' (HF safetensors -> GGUF).
 # llama.cpp itself (the convert_hf_to_gguf.py script and llama-quantize
 # binary) is installed separately via 'anvil models convert-setup'.

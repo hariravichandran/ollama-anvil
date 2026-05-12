@@ -1,4 +1,5 @@
-"""Ollama LLM client, model management, context compression, embeddings, RAG."""
+"""Ollama LLM client, model management, context compression, embeddings, RAG,
+speculative decoding."""
 
 from anvil.llm.aliases import AliasManager
 from anvil.llm.capabilities import ModelCapabilities, detect_capabilities
@@ -10,6 +11,13 @@ from anvil.llm.health import HealthChecker, HealthResult
 from anvil.llm.profiles import Profile, ProfileManager
 from anvil.llm.rag import RAGPipeline, RAGResult
 from anvil.llm.resource import ModelFitResult, ResourceManager, ResourceStatus
+from anvil.llm.speculative import (
+    DraftRefiner,
+    DraftResult,
+    DraftSelector,
+    DraftStats,
+    SpeculativeDecoder,
+)
 
 __all__ = [
     "OllamaClient",
@@ -30,4 +38,9 @@ __all__ = [
     "ResourceManager",
     "ResourceStatus",
     "ModelFitResult",
+    "SpeculativeDecoder",
+    "DraftRefiner",
+    "DraftSelector",
+    "DraftStats",
+    "DraftResult",
 ]
