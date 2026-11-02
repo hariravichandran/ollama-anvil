@@ -18,7 +18,7 @@ DOES support logprobs (logprobs=true, top_logprobs=N). This enables real
 token-level verification even though the native API doesn't expose it.
 
 Usage:
-    from forge.llm.speculative import SpeculativeDecoder
+    from anvil.llm.speculative import SpeculativeDecoder
 
     decoder = SpeculativeDecoder(
         draft_model="qwen2.5-coder:3b",
@@ -116,6 +116,23 @@ SpecStats = DraftStats
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+_MAX_ATTEMPTS = 3
+
+
+def _post_with_retry(url: str, payload: dict[str, Any], timeout: int) -> dict[str, Any]:
+    """POST JSON to Ollama, retrying transient connection errors with backoff."""
+    for attempt in range(1, _MAX_ATTEMPTS + 1):
+        try:
+            r = requests.post(url, json=payload, timeout=timeout)
+            r.raise_for_status()
+            return r.json()
+        except (requests.ConnectionError, requests.Timeout):
+            if attempt == _MAX_ATTEMPTS:
+                raise
+            time.sleep(2 * attempt)
+    raise AssertionError("unreachable")  # pragma: no cover
+
+
 def _api_generate(
     base_url: str, model: str, prompt: str,
     system: str = "", num_predict: int = 512,
@@ -138,17 +155,7 @@ def _api_generate(
         payload["system"] = system
     if think is not None:
         payload["think"] = think
-    for attempt in range(3):
-        try:
-            r = requests.post(f"{base_url}/api/generate", json=payload, timeout=timeout)
-            r.raise_for_status()
-            return r.json()
-        except (requests.ConnectionError, requests.Timeout) as e:
-            if attempt < 2:
-                time.sleep(2 * (attempt + 1))
-            else:
-                raise
-    return {}
+    return _post_with_retry(f"{base_url}/api/generate", payload, timeout)
 
 
 def _api_chat_logprobs(
@@ -165,19 +172,7 @@ def _api_chat_logprobs(
     }
     if think is not None:
         payload["think"] = think
-    for attempt in range(3):
-        try:
-            r = requests.post(
-                f"{base_url}/v1/chat/completions", json=payload, timeout=timeout,
-            )
-            r.raise_for_status()
-            return r.json()
-        except (requests.ConnectionError, requests.Timeout) as e:
-            if attempt < 2:
-                time.sleep(2 * (attempt + 1))
-            else:
-                raise
-    return {}
+    return _post_with_retry(f"{base_url}/v1/chat/completions", payload, timeout)
 
 
 def _measure_speed(
@@ -193,8 +188,8 @@ def _measure_speed(
         t = resp.get("eval_duration", 0) / 1e9
         if n > 0 and t > 0:
             return n / t
-    except Exception:
-        pass
+    except Exception as e:
+        log.debug("speed probe failed for %s, using default: %s", model, e)
     return 7.5
 
 

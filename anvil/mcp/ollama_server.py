@@ -33,15 +33,13 @@ Configuration in ~/.claude/settings.json:
 
 from __future__ import annotations
 
-import json
 import os
-import sys
 from typing import Any
 
 import requests
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import CallToolResult, TextContent, Tool
+from mcp.types import TextContent, Tool
 
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 TIMEOUT_GENERATE = 300

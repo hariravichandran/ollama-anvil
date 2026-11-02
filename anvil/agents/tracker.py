@@ -131,7 +131,7 @@ class AgentTracker:
     def list_systems(self) -> str:
         """List all tracked agent systems."""
         if not self.systems:
-            return "No agent systems tracked yet. Create one with 'forge agent create'."
+            return "No agent systems tracked yet. Create one with 'anvil agent create'."
 
         lines = ["Agent Systems:\n"]
         for sys in sorted(self.systems.values(), key=lambda s: s.last_active, reverse=True):
